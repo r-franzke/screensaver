@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">Web Screensaver</string>
+    <string name="settings_title">Web Screensaver settings</string>
+    <string name="urls_label">Web pages (one URL per line, http:// or https://)</string>
+    <string name="delay_label">Time per page, in minutes (%1$d–%2$d)</string>
+    <string name="reload_label">Reload page each time it is shown</string>
+    <string name="reload_description">When off, each page keeps running in the background and is only reloaded after an error.</string>
+    <string name="save">Save</string>
+    <string name="preview">Preview</string>
+    <string name="saved">Settings saved</string>
+    <string name="error_invalid_urls">Nothing was saved. These lines are not valid http:// or https:// URLs:</string>
+    <string name="error_invalid_line">Line %1$d: %2$s</string>
+    <string name="error_delay">Nothing was saved. Time per page: enter a whole number of minutes (%1$d–%2$d).</string>
+    <string name="error_retrying">No connection – retrying in 1 minute</string>
+    <string name="hint_no_urls_app">No web pages yet.\nPress OK or Menu to open the settings.</string>
+    <string name="hint_no_urls_dream">No web pages yet.\nOpen the Web Screensaver app to add some.</string>
+    <string name="controls_hint">In the slideshow: left/right shows the previous/next page, Menu or a long press on OK opens these settings.</string>
+</resources>

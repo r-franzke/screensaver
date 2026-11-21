@@ -1,0 +1,47 @@
+# Web Screensaver
+
+Android-TV-App, die eine Liste von Webseiten als Bildschirmschoner (Daydream) und als
+Vollbild-Diashow anzeigt. Nach einer einstellbaren Zeit wird zur nächsten Seite gewechselt.
+Ausgelegt für Android TV 8/9 (z. B. Xiaomi Mi Box), aber nicht gerätespezifisch.
+
+## Installation
+
+1. Im Play Store **„Downloader“** (von AFTVnews) installieren und der App erlauben,
+   unbekannte Apps zu installieren (Einstellungen → Apps → Sicherheit & Einschränkungen →
+   Unbekannte Quellen → Downloader).
+2. In Downloader die neueste APK laden:
+   `https://github.com/r-franzke/screensaver/releases/latest/download/web-screensaver.apk`
+3. App **Web Screensaver** öffnen (OK drücken öffnet die Einstellungen), die URLs einfügen –
+   eine pro Zeile, z. B. bequem per Tastatur der Google-TV-App auf dem Handy – und die
+   Anzeigedauer pro Seite (1–120 Minuten, Standard 5) festlegen. **Speichern** oder **Vorschau**.
+4. **Einstellungen → Geräteeinstellungen → Bildschirmschoner** → „Web Screensaver“ wählen.
+   **„Wann starten“** auf ein paar Minuten und **„Gerät in Ruhezustand versetzen“** auf **Nie** stellen.
+5. Falls der Fernseher keine Bildschirmschoner von Drittanbietern anbietet, per ADB setzen:
+   ```
+   adb shell settings put secure screensaver_components app.webscreensaver.tv/.SlideshowDream
+   adb shell settings put secure screensaver_enabled 1
+   ```
+6. Sieht eine Seite kaputt aus: **„Android System WebView“** im Play Store aktualisieren.
+
+## Bedienung
+
+- In der App: links/rechts = vorherige/nächste Seite, Menü-Taste oder OK lange drücken = Einstellungen.
+- Als Bildschirmschoner beendet jede Taste die Anzeige.
+- „Seite bei jeder Anzeige neu laden“ aus: Jede Seite läuft im Hintergrund weiter (mehr Speicherbedarf)
+  und wird nur nach einem Fehler neu geladen.
+- Ohne Verbindung erscheint ein kleiner Hinweis, alle 60 Sekunden wird es erneut versucht;
+  funktionierende Seiten werden weiter gezeigt, fehlerhafte übersprungen.
+
+Die URLs bleiben nur auf dem Gerät (kein Backup, kein Logging, keine Übertragung).
+
+## Entwicklung
+
+```
+./gradlew assembleDebug testDebugUnitTest lintDebug
+```
+
+Ein Tag `v*` (z. B. `v1.0.0`) baut über GitHub Actions eine signierte Release-APK und
+veröffentlicht sie als `web-screensaver.apk`. Dafür werden die Repository-Secrets
+`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS` und `KEY_PASSWORD` benötigt.
+Geht der Keystore verloren, kann eine neue Version die installierte App nicht mehr
+aktualisieren (nur Deinstallieren und Neuinstallieren, dabei gehen die Einstellungen verloren).
