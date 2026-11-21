@@ -18,4 +18,10 @@ object Delay {
     fun sanitize(minutes: Int): Int = if (isValid(minutes)) minutes else DEFAULT_MINUTES
 
     fun toMillis(minutes: Int): Long = minutes * 60_000L
+
+    /** How long the next page gets to load before the switch. */
+    const val PRELOAD_LEAD_MS = 30_000L
+
+    /** When, after a page appeared, the next page starts loading. */
+    fun preloadAfterMillis(minutes: Int): Long = (toMillis(minutes) - PRELOAD_LEAD_MS).coerceAtLeast(0)
 }

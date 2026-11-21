@@ -65,9 +65,33 @@ class UrlListTest {
 
     @Test
     fun `serialize and deserialize round trip`() {
-        val urls = listOf("https://a.example/?t=1", "http://b.example")
-        assertEquals(urls, UrlList.deserialize(UrlList.serialize(urls)))
-        assertEquals(emptyList<String>(), UrlList.deserialize(null))
-        assertEquals(emptyList<String>(), UrlList.deserialize(""))
+        val pages = listOf(PageEntry("https://a.example/?t=1", reloadBeforeShowing = true), PageEntry("http://b.example"))
+        assertEquals("! https://a.example/?t=1\nhttp://b.example", UrlList.serialize(pages))
+        assertEquals(pages, UrlList.deserialize(UrlList.serialize(pages)))
+        assertEquals(emptyList<PageEntry>(), UrlList.deserialize(null))
+        assertEquals(emptyList<PageEntry>(), UrlList.deserialize(""))
+    }
+}
+
+class ReloadMarkerTest {
+
+    @Test
+    fun `leading exclamation mark marks a page for reload, other pages keep running`() {
+        val result = UrlList.parse("! https://clock.example/\nhttps://dash.example/\n!https://news.example/")
+        assertTrue(result.isValid)
+        assertEquals(
+            listOf(
+                PageEntry("https://clock.example/", reloadBeforeShowing = true),
+                PageEntry("https://dash.example/", reloadBeforeShowing = false),
+                PageEntry("https://news.example/", reloadBeforeShowing = true),
+            ),
+            result.pages,
+        )
+    }
+
+    @Test
+    fun `marker without a valid url or other prefixes are invalid`() {
+        val result = UrlList.parse("!\n! ftp://x.example\n? https://a.example\nreload https://b.example")
+        assertEquals(listOf(1, 2, 3, 4), result.invalidLines.map { it.lineNumber })
     }
 }

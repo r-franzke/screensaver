@@ -1,6 +1,7 @@
 package app.webscreensaver.tv
 
 import android.app.Activity
+import android.content.ComponentCallbacks2
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -21,12 +22,19 @@ class SlideshowActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // First launch without any pages: go straight to the settings (only once, not after "back").
+        if (savedInstanceState == null && SettingsStore(this).load().pages.isEmpty()) openSettings()
     }
 
     override fun onStart() {
         super.onStart()
         // Rebuilt on every start so changed settings take effect after returning from the settings.
-        val show = Slideshow(this, SettingsStore(this).load(), getString(R.string.hint_no_urls_app))
+        val show = Slideshow(
+            this,
+            SettingsStore(this).load(),
+            getString(R.string.hint_no_urls_app),
+            FailureStore(this),
+        )
         slideshow = show
         setContentView(show.view)
         hideSystemUi()
@@ -37,6 +45,19 @@ class SlideshowActivity : Activity() {
         slideshow?.destroy()
         slideshow = null
         super.onStop()
+    }
+
+    @Suppress("DEPRECATION") // the RUNNING_* levels are still delivered on Android TV 8/9
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) slideshow?.trimMemory()
+    }
+
+    @Deprecated("Deprecated in Java")
+    @Suppress("DEPRECATION")
+    override fun onLowMemory() {
+        super.onLowMemory()
+        slideshow?.trimMemory()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {

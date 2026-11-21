@@ -11,7 +11,7 @@ Ausgelegt für Android TV 8/9 (z. B. Xiaomi Mi Box), aber nicht gerätespezifisc
    Unbekannte Quellen → Downloader).
 2. In Downloader die neueste APK laden:
    `https://github.com/r-franzke/screensaver/releases/latest/download/web-screensaver.apk`
-3. App **Web Screensaver** öffnen (OK drücken öffnet die Einstellungen), die URLs einfügen –
+3. App **Web Screensaver** öffnen (beim ersten Start öffnen sich die Einstellungen), die URLs einfügen –
    eine pro Zeile, z. B. bequem per Tastatur der Google-TV-App auf dem Handy – und die
    Anzeigedauer pro Seite (1–120 Minuten, Standard 5) festlegen. **Speichern** oder **Vorschau**.
 4. **Einstellungen → Geräteeinstellungen → Bildschirmschoner** → „Web Screensaver“ wählen.
@@ -27,10 +27,14 @@ Ausgelegt für Android TV 8/9 (z. B. Xiaomi Mi Box), aber nicht gerätespezifisc
 
 - In der App: links/rechts = vorherige/nächste Seite, Menü-Taste oder OK lange drücken = Einstellungen.
 - Als Bildschirmschoner beendet jede Taste die Anzeige.
-- „Seite bei jeder Anzeige neu laden“ aus: Jede Seite läuft im Hintergrund weiter (mehr Speicherbedarf)
-  und wird nur nach einem Fehler neu geladen.
+- Seiten laufen im Hintergrund weiter, solange die Diashow läuft. Eine Zeile, die mit `!` beginnt
+  (z. B. `! https://example.com/uhr`), wird vor jeder Anzeige frisch geladen.
+- Die nächste Seite wird 30 Sekunden vor dem Wechsel geladen. Wird der Speicher knapp, werden
+  versteckte Seiten geschlossen und bei Bedarf neu geladen.
 - Ohne Verbindung erscheint ein kleiner Hinweis, alle 60 Sekunden wird es erneut versucht;
-  funktionierende Seiten werden weiter gezeigt, fehlerhafte übersprungen.
+  funktionierende Seiten werden weiter gezeigt, fehlerhafte übersprungen. Die letzten Ladefehler
+  stehen in den Einstellungen unter „Ladefehler“.
+- Außerhalb des Bildschirmschoners bzw. der App läuft nichts im Hintergrund.
 
 Die URLs bleiben nur auf dem Gerät (kein Backup, kein Logging, keine Übertragung).
 

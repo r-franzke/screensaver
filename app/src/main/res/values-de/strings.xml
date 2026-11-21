@@ -3,8 +3,16 @@
     <string name="settings_title">Web Screensaver – Einstellungen</string>
     <string name="urls_label">Webseiten (eine URL pro Zeile, http:// oder https://)</string>
     <string name="delay_label">Anzeigedauer pro Seite, in Minuten (%1$d–%2$d)</string>
-    <string name="reload_label">Seite bei jeder Anzeige neu laden</string>
-    <string name="reload_description">Wenn aus, laufen die Seiten im Hintergrund weiter und werden nur nach einem Fehler neu geladen.</string>
+    <string name="reload_description">Seiten laufen im Hintergrund weiter. Eine Zeile mit ! beginnen (z. B. „! https://…“), damit die Seite vor jeder Anzeige neu geladen wird.</string>
+    <string name="status_title">Ladefehler</string>
+    <string name="status_none">Keine Ladefehler.</string>
+    <string name="status_row">Zeile %1$d · %2$s: %3$s (%4$s)</string>
+    <string name="status_connection">keine Verbindung</string>
+    <string name="status_http">HTTP-Fehler %1$d</string>
+    <string name="status_certificate">Zertifikatsfehler</string>
+    <string name="status_other">konnte nicht geladen werden</string>
+    <string name="loading_page">%1$s wird geladen …</string>
+    <string name="loading_page_of">Seite %1$d von %2$d wird geladen · %3$s</string>
     <string name="save">Speichern</string>
     <string name="preview">Vorschau</string>
     <string name="saved">Einstellungen gespeichert</string>
@@ -12,7 +20,7 @@
     <string name="error_invalid_line">Zeile %1$d: %2$s</string>
     <string name="error_delay">Nichts gespeichert. Anzeigedauer: bitte eine ganze Zahl an Minuten eingeben (%1$d–%2$d).</string>
     <string name="error_retrying">Keine Verbindung – neuer Versuch in 1 Minute</string>
-    <string name="hint_no_urls_app">Noch keine Webseiten.\nOK oder Menü drücken, um die Einstellungen zu öffnen.</string>
+    <string name="hint_no_urls_app">Noch keine Webseiten.\nOK oder Menü drücken, um welche hinzuzufügen.</string>
     <string name="hint_no_urls_dream">Noch keine Webseiten.\nÖffne die App „Web Screensaver“, um welche hinzuzufügen.</string>
     <string name="controls_hint">In der Diashow: links/rechts zeigt die vorherige/nächste Seite, Menü oder OK lange drücken öffnet diese Einstellungen.</string>
 </resources>

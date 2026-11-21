@@ -38,6 +38,12 @@
             android:scrollbars="vertical" />
 
         <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/reload_description"
+            android:textAppearance="?android:attr/textAppearanceSmall" />
+
+        <TextView
             android:id="@+id/delay_label"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -54,19 +60,6 @@
             android:inputType="number"
             android:maxLength="3" />
 
-        <Switch
-            android:id="@+id/reload"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:minHeight="48dp"
-            android:text="@string/reload_label" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/reload_description"
-            android:textAppearance="?android:attr/textAppearanceSmall" />
 
         <TextView
             android:id="@+id/error"
@@ -98,6 +91,20 @@
                 android:layout_marginStart="16dp"
                 android:text="@string/preview" />
         </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/status_title"
+            android:textAppearance="?android:attr/textAppearanceMedium" />
+
+        <TextView
+            android:id="@+id/status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textAppearance="?android:attr/textAppearanceSmall" />
 
         <TextView
             android:layout_width="wrap_content"

@@ -9,6 +9,7 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.net.http.SslError
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -30,55 +31,54 @@ import android.widget.TextView
 /**
  * Fullscreen web page slideshow, used by both [SlideshowDream] and [SlideshowActivity].
  *
- * The visible page is shown in one WebView while the next one is preloaded in another; after the
- * delay the preloaded page is cross-faded in. With "reload each time" off, every page gets its own
- * WebView that keeps running in the background and is only reloaded after an error.
+ * Every page gets its own WebView, created when first needed, which keeps running in the background
+ * while other pages are shown. Pages marked with `!` are loaded fresh shortly before each showing and
+ * unloaded after they have been shown. The next page starts loading [Delay.PRELOAD_LEAD_MS] before
+ * the switch; the switch is a cross-fade once it has loaded. Under memory pressure, all hidden pages
+ * except the next one are closed ([trimMemory]).
  *
- * Never log URLs: they may contain private tokens.
+ * Nothing runs before [start] or after [destroy]. Never log URLs: they may contain private tokens.
  */
 class Slideshow(
     private val context: Context,
-    private val settings: SlideshowSettings,
-    emptyHint: String,
+    settings: SlideshowSettings,
+    private val emptyHint: String,
+    private val failureStore: FailureStore,
 ) {
     private enum class Status { IDLE, LOADING, LOADED, FAILED }
 
-    private inner class Page {
+    private inner class Page(val index: Int) {
+        val entry: PageEntry get() = entries[index]
         var webView: WebView = createWebView(this)
-        var index = -1
         var status = Status.IDLE
 
-        /** Loaded ahead of time for the next show (reload mode): may be shown without reloading. */
+        /** Loaded since it was last shown (so a `!` page does not need another reload). */
         var fresh = false
     }
 
-    private val urls = settings.urls
-    private val reloadEachTime = settings.reloadEachTime
-    private val delayMs = Delay.toMillis(settings.delayMinutes)
-    private val rotation = Rotation(urls.size)
+    private val entries = settings.pages
+    private val delayMinutes = settings.delayMinutes
+    private val rotation = Rotation(entries.size)
     private val handler = Handler(Looper.getMainLooper())
 
     private val pagesLayer = FrameLayout(context).apply { setBackgroundColor(Color.BLACK) }
+    private val waitingScreen = WaitingScreen(context)
     private val errorOverlay = createOverlay()
-    private val hintView = createHint(emptyHint)
 
     /** The view to put on screen. */
     val view: FrameLayout = FrameLayout(context).apply {
         setBackgroundColor(Color.BLACK)
         addView(pagesLayer, matchParent())
+        addView(waitingScreen, matchParent())
         val overlayParams = FrameLayout.LayoutParams(WRAP, WRAP, Gravity.BOTTOM or Gravity.END)
         val margin = dp(32)
         overlayParams.setMargins(margin, margin, margin, margin)
         addView(errorOverlay, overlayParams)
-        addView(hintView, FrameLayout.LayoutParams(WRAP, WRAP, Gravity.CENTER))
     }
 
-    val hasUrls: Boolean get() = urls.isNotEmpty()
+    val hasUrls: Boolean get() = entries.isNotEmpty()
 
-    /** Reload mode: the two alternating pages. Keep-running mode: one page per URL index. */
-    private val pool = mutableListOf<Page>()
-    private val pagesByIndex = HashMap<Int, Page>()
-
+    private val pages = HashMap<Int, Page>()
     private var visible: Page? = null
     private var pending: Page? = null
     private var fade: Animator? = null
@@ -86,16 +86,18 @@ class Slideshow(
     private var destroyed = false
 
     private val advanceRunnable = Runnable { advanceAutomatically() }
+    private val preloadRunnable = Runnable { preloadNext() }
     private val retryRunnable = Runnable { retryVisible() }
     private val readyTimeoutRunnable = Runnable { pending?.let { reveal(it) } }
 
     fun start() {
         if (started || destroyed) return
         started = true
-        if (urls.isEmpty()) {
-            hintView.visibility = View.VISIBLE
+        if (entries.isEmpty()) {
+            waitingScreen.showMessage(emptyHint)
             return
         }
+        waitingScreen.showLoading(loadingText(0))
         showIndex(0)
     }
 
@@ -105,89 +107,99 @@ class Slideshow(
     /** D-pad left. */
     fun previous() = jump(-1)
 
+    /** Memory is low: close every hidden page except the next one. They are reloaded when needed. */
+    fun trimMemory() {
+        if (!started || destroyed) return
+        val keep = setOfNotNull(visible, pending, nextIndex()?.let { pages[it] })
+        pages.values.filter { it !in keep }.forEach { page ->
+            pages.remove(page.index)
+            destroyWebView(page.webView)
+        }
+    }
+
     fun destroy() {
         if (destroyed) return
         destroyed = true
         handler.removeCallbacksAndMessages(null)
         fade?.cancel()
         fade = null
-        val all = (pool + pagesByIndex.values).distinct()
-        pool.clear()
-        pagesByIndex.clear()
+        waitingScreen.release()
+        val all = pages.values.toList()
+        pages.clear()
         visible = null
         pending = null
-        pagesLayer.removeAllViews()
         all.forEach { destroyWebView(it.webView) }
+        pagesLayer.removeAllViews()
     }
 
     // --- Rotation -----------------------------------------------------------------------------
 
     private fun now() = SystemClock.elapsedRealtime()
 
-    private fun baseIndex(): Int = pending?.index ?: visible?.index ?: 0
+    private fun nextIndex(): Int? = visible?.let { rotation.next(it.index, now()) }
 
     private fun jump(step: Int) {
-        if (!started || destroyed || urls.size <= 1) return
-        val target = rotation.next(baseIndex(), now(), step, skipUnavailable = false) ?: return
+        if (!started || destroyed || entries.size <= 1) return
+        val base = pending?.index ?: visible?.index ?: return
+        val target = rotation.next(base, now(), step, skipUnavailable = false) ?: return
         showIndex(target)
     }
 
     private fun advanceAutomatically() {
-        val current = visible?.index ?: return
-        val target = rotation.next(current, now())
+        val target = nextIndex()
         if (target == null) {
             // Nothing else to show right now (all other pages failed recently): stay, check later.
-            scheduleAdvance()
+            scheduleTimers()
             return
         }
         showIndex(target)
     }
 
-    private fun scheduleAdvance() {
+    private fun scheduleTimers() {
         handler.removeCallbacks(advanceRunnable)
-        if (urls.size > 1) handler.postDelayed(advanceRunnable, delayMs)
+        handler.removeCallbacks(preloadRunnable)
+        if (entries.size <= 1) return
+        handler.postDelayed(preloadRunnable, Delay.preloadAfterMillis(delayMinutes))
+        handler.postDelayed(advanceRunnable, Delay.toMillis(delayMinutes))
+    }
+
+    private fun preloadNext() {
+        if (destroyed) return
+        nextIndex()?.let { prepare(it) }
     }
 
     /** Starts switching to [index]; the page is revealed once it has loaded (or after a timeout). */
     private fun showIndex(index: Int) {
         if (destroyed) return
         handler.removeCallbacks(advanceRunnable)
+        handler.removeCallbacks(preloadRunnable)
         handler.removeCallbacks(readyTimeoutRunnable)
-        finishFade(preloadAfterwards = false)
+        finishFade()
 
-        val page = obtain(index)
+        val page = prepare(index)
         if (page === visible) {
             pending = null
             reveal(page)
             return
         }
         pending = page
-        when (page.status) {
-            Status.LOADED -> reveal(page)
-            Status.FAILED -> onPendingFailed(page)
-            else -> handler.postDelayed(readyTimeoutRunnable, READY_TIMEOUT_MS)
+        if (page.status == Status.LOADED) {
+            reveal(page)
+        } else {
+            handler.postDelayed(readyTimeoutRunnable, READY_TIMEOUT_MS)
         }
     }
 
-    /** Returns a page that shows (or is loading) [index], starting a load if needed. */
-    private fun obtain(index: Int): Page {
-        if (!reloadEachTime) {
-            val page = pagesByIndex.getOrPut(index) { addPage() }
-            if (page.status == Status.IDLE || page.status == Status.FAILED) load(page, index)
-            return page
+    /** Returns the page for [index], loading it if it is not loaded (or is a `!` page not yet refreshed). */
+    private fun prepare(index: Int): Page {
+        val page = pages.getOrPut(index) { addPage(index) }
+        val needsLoad = when (page.status) {
+            Status.IDLE, Status.FAILED -> true
+            Status.LOADING -> false
+            Status.LOADED -> page.entry.reloadBeforeShowing && !page.fresh && page !== visible
         }
-        while (pool.size < 2) pool += addPage()
-        val hidden = pool.first { it !== visible }
-        if (hidden.index == index && hidden.fresh && hidden.status != Status.FAILED) return hidden
-        load(hidden, index)
-        return hidden
-    }
-
-    private fun preloadNext() {
-        if (destroyed) return
-        val current = visible?.index ?: return
-        val next = rotation.next(current, now()) ?: return
-        obtain(next)
+        if (needsLoad) load(page)
+        return page
     }
 
     // --- Showing ------------------------------------------------------------------------------
@@ -205,61 +217,67 @@ class Slideshow(
         webView.bringToFront()
         if (old == null || old === page) {
             webView.alpha = 1f
-            preloadNext()
         } else {
             webView.alpha = 0f
             fade = ObjectAnimator.ofFloat(webView, View.ALPHA, 0f, 1f).apply {
                 duration = FADE_MS
                 addListener(object : AnimatorListenerAdapter() {
-                    private var cancelled = false
-                    override fun onAnimationCancel(animation: Animator) {
-                        cancelled = true
-                    }
-
                     override fun onAnimationEnd(animation: Animator) {
                         if (fade === animation) fade = null
-                        old.webView.visibility = View.INVISIBLE
                         webView.alpha = 1f
-                        if (!cancelled) preloadNext()
+                        if (pages[old.index] === old && old !== visible) hide(old)
                     }
                 })
                 start()
             }
         }
-        updateOverlay()
-        scheduleAdvance()
+        if (page.status != Status.FAILED) waitingScreen.hide(FADE_MS)
+        updateErrorDisplay()
+        scheduleTimers()
         if (page.status == Status.FAILED) onVisibleFailed()
     }
 
-    /** Ends a running cross-fade immediately. */
-    private fun finishFade(preloadAfterwards: Boolean) {
+    /** A page that is no longer shown keeps running, unless it is reloaded before each showing anyway. */
+    private fun hide(page: Page) {
+        page.webView.visibility = View.INVISIBLE
+        if (page.entry.reloadBeforeShowing && page.status != Status.LOADING) {
+            page.status = Status.IDLE
+            page.fresh = false
+            page.webView.loadUrl(BLANK)
+        }
+    }
+
+    /** Ends a running cross-fade immediately (its end handling still runs). */
+    private fun finishFade() {
         val running = fade ?: return
         fade = null
-        if (preloadAfterwards) running.end() else running.cancel()
+        running.end()
     }
 
     // --- Loading and errors -------------------------------------------------------------------
 
-    private fun load(page: Page, index: Int) {
-        page.index = index
+    private fun load(page: Page) {
         page.status = Status.LOADING
         page.fresh = true
-        page.webView.loadUrl(urls[index])
+        page.webView.loadUrl(page.entry.url)
     }
 
     private fun onLoaded(page: Page) {
         rotation.markOk(page.index)
+        failureStore.recordSuccess(page.entry.url)
         when {
             page === pending -> reveal(page)
             page === visible -> {
                 handler.removeCallbacks(retryRunnable)
-                updateOverlay()
+                waitingScreen.hide(FADE_MS)
+                updateErrorDisplay()
             }
         }
     }
 
-    private fun onFailed(page: Page) {
+    private fun onFailed(page: Page, failure: PageFailure) {
         rotation.markFailed(page.index, now())
+        failureStore.recordFailure(page.entry.url, failure)
         when {
             page === pending -> onPendingFailed(page)
             page === visible -> onVisibleFailed()
@@ -269,13 +287,14 @@ class Slideshow(
 
     private fun onPendingFailed(page: Page) {
         val other = rotation.next(page.index, now())
-        if (other != null && other != visible?.index) {
+        val current = visible
+        if (other != null && other != current?.index) {
             showIndex(other)
-        } else if (visible != null && visible?.status != Status.FAILED) {
+        } else if (current != null && current.status != Status.FAILED) {
             // Keep showing the working page instead of an error.
             pending = null
             handler.removeCallbacks(readyTimeoutRunnable)
-            scheduleAdvance()
+            scheduleTimers()
         } else {
             reveal(page)
         }
@@ -284,12 +303,11 @@ class Slideshow(
     private fun onVisibleFailed() {
         val current = visible ?: return
         val other = rotation.next(current.index, now())
+        updateErrorDisplay()
         if (other != null) {
-            updateOverlay()
             showIndex(other)
             return
         }
-        updateOverlay()
         handler.removeCallbacks(retryRunnable)
         handler.postDelayed(retryRunnable, Rotation.RETRY_AFTER_MS)
     }
@@ -297,36 +315,52 @@ class Slideshow(
     private fun retryVisible() {
         val page = visible ?: return
         if (page.status != Status.FAILED) return
-        load(page, page.index)
+        if (waitingScreen.isShowing) waitingScreen.showLoading(loadingText(page.index))
+        load(page)
     }
 
-    private fun fail(page: Page) {
+    private fun fail(page: Page, failure: PageFailure) {
         if (page.status == Status.FAILED) return
         page.status = Status.FAILED
         page.fresh = false
         // Replace the WebView's own (white) error page with black.
         page.webView.stopLoading()
         page.webView.loadUrl(BLANK)
-        onFailed(page)
+        onFailed(page, failure)
     }
 
-    private fun updateOverlay() {
-        errorOverlay.visibility = if (visible?.status == Status.FAILED) View.VISIBLE else View.GONE
+    private fun updateErrorDisplay() {
+        val failed = visible?.status == Status.FAILED
+        if (failed && waitingScreen.isShowing) {
+            // Nothing has been shown yet: say it on the waiting screen instead of a small overlay.
+            waitingScreen.showMessage(context.getString(R.string.error_retrying))
+            errorOverlay.visibility = View.GONE
+        } else {
+            errorOverlay.visibility = if (failed) View.VISIBLE else View.GONE
+        }
+    }
+
+    private fun loadingText(index: Int): String {
+        val host = UrlList.host(entries[index].url) ?: ""
+        return if (entries.size > 1) {
+            context.getString(R.string.loading_page_of, index + 1, entries.size, host)
+        } else {
+            context.getString(R.string.loading_page, host)
+        }
     }
 
     /** The renderer crashed (e.g. out of memory): replace the WebView instead of crashing the app. */
     private fun recreate(page: Page) {
-        if (destroyed) return
+        if (destroyed || pages[page.index] !== page) return
         val oldView = page.webView
         val position = pagesLayer.indexOfChild(oldView)
         val newView = createWebView(page)
         newView.visibility = oldView.visibility
-        pagesLayer.removeView(oldView)
+        destroyWebView(oldView)
         pagesLayer.addView(newView, if (position >= 0) position else pagesLayer.childCount, matchParent())
         page.webView = newView
-        destroyWebView(oldView)
         if (page === visible || page === pending) {
-            load(page, page.index)
+            load(page)
         } else {
             page.status = Status.IDLE
             page.fresh = false
@@ -335,8 +369,8 @@ class Slideshow(
 
     // --- Views --------------------------------------------------------------------------------
 
-    private fun addPage(): Page {
-        val page = Page()
+    private fun addPage(index: Int): Page {
+        val page = Page(index)
         pagesLayer.addView(page.webView, 0, matchParent())
         return page
     }
@@ -359,6 +393,9 @@ class Slideshow(
             builtInZoomControls = false
             displayZoomControls = false
             textZoom = 100
+            // Pages are told the user prefers a dark scheme through the app's dark theme
+            // (targetSdk 33+); pages without a dark design are not darkened algorithmically.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) isAlgorithmicDarkeningAllowed = false
         }
         CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
         webChromeClient = object : WebChromeClient() {
@@ -371,7 +408,8 @@ class Slideshow(
 
     private inner class PageClient(private val page: Page) : WebViewClient() {
 
-        private fun isCurrent(view: WebView) = !destroyed && view === page.webView
+        private fun isCurrent(view: WebView) =
+            !destroyed && view === page.webView && pages[page.index] === page
 
         // Links stay inside the WebView.
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean = false
@@ -385,7 +423,9 @@ class Slideshow(
         }
 
         override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
-            if (isCurrent(view) && request.isForMainFrame) fail(page)
+            if (isCurrent(view) && request.isForMainFrame) {
+                fail(page, PageFailure(FailureKind.fromWebViewError(error.errorCode), atMillis = wallClock()))
+            }
         }
 
         override fun onReceivedHttpError(
@@ -393,16 +433,17 @@ class Slideshow(
             request: WebResourceRequest,
             errorResponse: WebResourceResponse,
         ) {
-            if (isCurrent(view) && request.isForMainFrame && errorResponse.statusCode >= 400) fail(page)
+            val status = errorResponse.statusCode
+            if (isCurrent(view) && request.isForMainFrame && status >= 400) {
+                fail(page, PageFailure(FailureKind.HTTP, httpStatus = status, atMillis = wallClock()))
+            }
         }
 
         @SuppressLint("WebViewClientOnReceivedSslError")
         override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: SslError) {
             handler.cancel()
-            if (isCurrent(view) && page.status == Status.LOADING && page.index >= 0 &&
-                error.url == urls[page.index]
-            ) {
-                fail(page)
+            if (isCurrent(view) && page.status == Status.LOADING && error.url == page.entry.url) {
+                fail(page, PageFailure(FailureKind.CERTIFICATE, atMillis = wallClock()))
             }
         }
 
@@ -411,6 +452,8 @@ class Slideshow(
             return true
         }
     }
+
+    private fun wallClock() = System.currentTimeMillis()
 
     private fun destroyWebView(webView: WebView) {
         webView.stopLoading()
@@ -427,15 +470,6 @@ class Slideshow(
             setColor(0x99000000.toInt())
             cornerRadius = dp(8).toFloat()
         }
-        visibility = View.GONE
-    }
-
-    private fun createHint(text: String): TextView = TextView(context).apply {
-        this.text = text
-        gravity = Gravity.CENTER
-        setTextColor(Color.WHITE)
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
-        setPadding(dp(48), dp(48), dp(48), dp(48))
         visibility = View.GONE
     }
 

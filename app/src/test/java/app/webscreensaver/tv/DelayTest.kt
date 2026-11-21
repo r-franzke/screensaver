@@ -37,4 +37,11 @@ class DelayTest {
         assertEquals(60_000L, Delay.toMillis(1))
         assertEquals(7_200_000L, Delay.toMillis(120))
     }
+
+    @Test
+    fun `next page starts loading 30 seconds before the switch`() {
+        assertEquals(270_000L, Delay.preloadAfterMillis(5))
+        assertEquals(30_000L, Delay.preloadAfterMillis(1))
+        assertEquals(7_170_000L, Delay.preloadAfterMillis(120))
+    }
 }
