@@ -37,6 +37,8 @@ import android.widget.TextView
  * the switch; the switch is a cross-fade once it has loaded. Under memory pressure, all hidden pages
  * except the next one are closed ([trimMemory]).
  *
+ * Each start continues after the page shown last time ([StartPosition]).
+ *
  * Nothing runs before [start] or after [destroy]. Never log URLs: they may contain private tokens.
  */
 class Slideshow(
@@ -44,6 +46,7 @@ class Slideshow(
     settings: SlideshowSettings,
     private val emptyHint: String,
     private val failureStore: FailureStore,
+    private val lastShown: LastShownStore,
 ) {
     private enum class Status { IDLE, LOADING, LOADED, FAILED }
 
@@ -97,8 +100,10 @@ class Slideshow(
             waitingScreen.showMessage(emptyHint)
             return
         }
-        waitingScreen.showLoading(loadingText(0))
-        showIndex(0)
+        // Continue after the page shown last time, so short screensaver sessions still rotate.
+        val first = StartPosition.next(entries.map { it.url }, lastShown.load())
+        waitingScreen.showLoading(loadingText(first))
+        showIndex(first)
     }
 
     /** D-pad right. */
@@ -231,7 +236,10 @@ class Slideshow(
                 start()
             }
         }
-        if (page.status != Status.FAILED) waitingScreen.hide(FADE_MS)
+        if (page.status != Status.FAILED) {
+            waitingScreen.hide(FADE_MS)
+            lastShown.save(page.entry.url)
+        }
         updateErrorDisplay()
         scheduleTimers()
         if (page.status == Status.FAILED) onVisibleFailed()

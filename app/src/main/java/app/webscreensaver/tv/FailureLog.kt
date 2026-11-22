@@ -1,7 +1,6 @@
 package app.webscreensaver.tv
 
 import android.webkit.WebViewClient
-import java.security.MessageDigest
 
 enum class FailureKind {
     CONNECTION, HTTP, CERTIFICATE, OTHER;
@@ -56,8 +55,7 @@ class FailureLog {
         "$hash;${f.kind.name};${f.httpStatus};${f.atMillis}"
     }
 
-    private fun key(url: String): String =
-        MessageDigest.getInstance("SHA-256").digest(url.toByteArray()).joinToString("") { "%02x".format(it) }
+    private fun key(url: String): String = UrlKey.of(url)
 
     companion object {
         fun deserialize(stored: String?): FailureLog {

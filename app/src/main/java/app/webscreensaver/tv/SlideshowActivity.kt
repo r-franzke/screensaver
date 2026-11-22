@@ -34,6 +34,7 @@ class SlideshowActivity : Activity() {
             SettingsStore(this).load(),
             getString(R.string.hint_no_urls_app),
             FailureStore(this),
+            LastShownStore(this),
         )
         slideshow = show
         setContentView(show.view)
