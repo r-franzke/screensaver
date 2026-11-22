@@ -11,6 +11,16 @@
     <string name="status_http">HTTP-Fehler %1$d</string>
     <string name="status_certificate">Zertifikatsfehler</string>
     <string name="status_other">konnte nicht geladen werden</string>
+    <string name="update_title">Updates</string>
+    <string name="update_check">Nach Updates suchen</string>
+    <string name="update_checking">Suche nach Updates …</string>
+    <string name="update_line">%1$s · %2$s</string>
+    <string name="update_installed">Installiert: Version %1$s</string>
+    <string name="update_unavailable">automatische Updates sind in diesem Build nicht verfügbar</string>
+    <string name="update_never_checked">noch nicht geprüft</string>
+    <string name="update_up_to_date">aktuell (geprüft %1$s)</string>
+    <string name="update_downloaded">Version %1$s ist geladen und wird beim nächsten Öffnen der App installiert</string>
+    <string name="update_failed">Update-Prüfung fehlgeschlagen (%1$s), neuer Versuch morgen</string>
     <string name="loading_page">%1$s wird geladen …</string>
     <string name="loading_page_of">Seite %1$d von %2$d wird geladen · %3$s</string>
     <string name="save">Speichern</string>

@@ -38,14 +38,34 @@ Ausgelegt für Android TV 8/9 (z. B. Xiaomi Mi Box), aber nicht gerätespezifisc
 
 Die URLs bleiben nur auf dem Gerät (kein Backup, kein Logging, keine Übertragung).
 
+## Updates
+
+Die App sucht höchstens einmal pro Tag (nur während Diashow oder Bildschirmschoner laufen) nach einer
+neuen Version auf der GitHub-Releases-Seite und lädt sie herunter. Beim nächsten Öffnen der App fragt
+Android „Update installieren?“ – einmal mit OK bestätigen. Beim ersten Mal muss der App erlaubt werden,
+Apps zu installieren. In den Einstellungen unter „Updates“ stehen die installierte Version, der Status
+und die Schaltfläche „Nach Updates suchen“.
+
 ## Entwicklung
 
 ```
 ./gradlew assembleDebug testDebugUnitTest lintDebug
 ```
 
-Ein Tag `v*` (z. B. `v1.0.0`) baut über GitHub Actions eine signierte Release-APK und
-veröffentlicht sie als `web-screensaver.apk`. Dafür werden die Repository-Secrets
-`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS` und `KEY_PASSWORD` benötigt.
-Geht der Keystore verloren, kann eine neue Version die installierte App nicht mehr
-aktualisieren (nur Deinstallieren und Neuinstallieren, dabei gehen die Einstellungen verloren).
+Versionen entstehen automatisch aus den Commit-Nachrichten
+([Conventional Commits](https://www.conventionalcommits.org/de/)), sobald etwas auf `main` landet:
+
+| Commit-Nachricht | Version |
+|---|---|
+| `fix: …` | Patch, z. B. 1.0.0 → 1.0.1 |
+| `feat: …` | Minor, z. B. 1.0.1 → 1.1.0 |
+| `feat!: …` oder `BREAKING CHANGE:` im Text | Major, z. B. 1.1.0 → 2.0.0 |
+| `chore:`, `docs:`, `refactor:`, `test:`, … | kein Release |
+
+GitHub Actions baut dann die signierte APK, legt das Tag `vX.Y.Z` und das Release mit Changelog an und
+hängt `web-screensaver.apk` an. Pull Requests am besten per „Squash and merge“ zusammenführen – dann
+zählt der PR-Titel als Commit-Nachricht.
+
+Dafür werden die Repository-Secrets `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS` und
+`KEY_PASSWORD` benötigt. Geht der Keystore verloren, kann eine neue Version die installierte App
+nicht mehr aktualisieren (nur Deinstallieren und Neuinstallieren, dabei gehen die Einstellungen verloren).

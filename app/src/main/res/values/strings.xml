@@ -12,6 +12,16 @@
     <string name="status_http">HTTP error %1$d</string>
     <string name="status_certificate">certificate error</string>
     <string name="status_other">could not be loaded</string>
+    <string name="update_title">Updates</string>
+    <string name="update_check">Check for updates</string>
+    <string name="update_checking">Checking for updates …</string>
+    <string name="update_line">%1$s · %2$s</string>
+    <string name="update_installed">Installed: version %1$s</string>
+    <string name="update_unavailable">automatic updates are not available in this build</string>
+    <string name="update_never_checked">not checked yet</string>
+    <string name="update_up_to_date">up to date (checked %1$s)</string>
+    <string name="update_downloaded">version %1$s is ready and will be installed the next time the app is opened</string>
+    <string name="update_failed">update check failed (%1$s), trying again tomorrow</string>
     <string name="loading_page">Loading %1$s …</string>
     <string name="loading_page_of">Loading page %1$d of %2$d · %3$s</string>
     <string name="save">Save</string>

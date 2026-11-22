@@ -26,6 +26,7 @@ class SlideshowDream : DreamService() {
     override fun onDreamingStarted() {
         super.onDreamingStarted()
         slideshow?.start()
+        Updater.checkIfDue(this)
     }
 
     override fun onDreamingStopped() {

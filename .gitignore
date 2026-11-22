@@ -11,3 +11,4 @@ captures/
 *.keystore
 *.p12
 keystore*.txt
+node_modules/

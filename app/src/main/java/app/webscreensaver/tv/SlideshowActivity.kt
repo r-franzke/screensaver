@@ -39,6 +39,8 @@ class SlideshowActivity : Activity() {
         setContentView(show.view)
         hideSystemUi()
         show.start()
+        Updater.installPendingUpdate(this)
+        Updater.checkIfDue(this)
     }
 
     override fun onStop() {
