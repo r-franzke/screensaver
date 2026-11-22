@@ -2,7 +2,7 @@
 
 An Android TV app that shows a list of web pages as the system screensaver (Daydream) and as a
 fullscreen slideshow, switching to the next page after a configurable delay. Built for Android TV 8/9
-(e.g. Xiaomi Mi Box), but nothing in it is device-specific. The app's UI is in English and German.
+(e.g. Xiaomi Mi Box), but nothing in it is device-specific.
 
 ## Installation
 
