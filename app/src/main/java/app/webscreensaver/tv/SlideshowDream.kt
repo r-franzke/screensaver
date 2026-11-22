@@ -18,6 +18,7 @@ class SlideshowDream : DreamService() {
             SettingsStore(this).load(),
             getString(R.string.hint_no_urls_dream),
             FailureStore(this),
+            LastShownStore(this),
         )
         slideshow = show
         setContentView(show.view)

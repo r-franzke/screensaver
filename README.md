@@ -27,6 +27,8 @@ Ausgelegt für Android TV 8/9 (z. B. Xiaomi Mi Box), aber nicht gerätespezifisc
 
 - In der App: links/rechts = vorherige/nächste Seite, Menü-Taste oder OK lange drücken = Einstellungen.
 - Als Bildschirmschoner beendet jede Taste die Anzeige.
+- Bei jedem Start geht es mit der Seite nach der zuletzt gezeigten weiter, so kommen auch bei
+  kurzen Bildschirmschoner-Phasen alle Seiten an die Reihe.
 - Seiten laufen im Hintergrund weiter, solange die Diashow läuft. Eine Zeile, die mit `!` beginnt
   (z. B. `! https://example.com/uhr`), wird vor jeder Anzeige frisch geladen.
 - Die nächste Seite wird 30 Sekunden vor dem Wechsel geladen. Wird der Speicher knapp, werden
