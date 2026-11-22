@@ -1,0 +1,80 @@
+name: Build
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Never cancel a running release on main.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  check:
+    name: Build, unit tests, lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Build, test, lint
+        run: ./gradlew --no-daemon assembleDebug testDebugUnitTest lintDebug
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: reports
+          path: |
+            app/build/reports/
+            app/build/test-results/
+          if-no-files-found: ignore
+
+  release:
+    # Version from commit messages (Conventional Commits): fix -> patch, feat -> minor,
+    # feat! / BREAKING CHANGE -> major, anything else -> no release.
+    name: Release (semantic versioning)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # full history and tags to find the last release
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install release tooling
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Version, build signed APK, tag and publish
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          VERSION_CODE: ${{ github.run_number }}
+        run: npx --no-install semantic-release

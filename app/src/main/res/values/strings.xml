@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">Web Screensaver</string>
+    <string name="settings_title">Web Screensaver settings</string>
+    <string name="urls_label">Web pages (one URL per line, http:// or https://)</string>
+    <string name="delay_label">Time per page, in minutes (%1$d–%2$d)</string>
+    <string name="reload_description">Pages keep running in the background. Start a line with ! (e.g. \"! https://…\") to load that page fresh before each showing.</string>
+    <string name="status_title">Load errors</string>
+    <string name="status_none">No load errors.</string>
+    <string name="status_row">Line %1$d · %2$s: %3$s (%4$s)</string>
+    <string name="status_connection">no connection</string>
+    <string name="status_http">HTTP error %1$d</string>
+    <string name="status_certificate">certificate error</string>
+    <string name="status_other">could not be loaded</string>
+    <string name="update_title">Updates</string>
+    <string name="update_check">Check for updates</string>
+    <string name="update_checking">Checking for updates …</string>
+    <string name="update_line">%1$s · %2$s</string>
+    <string name="update_installed">Installed: version %1$s</string>
+    <string name="update_unavailable">automatic updates are not available in this build</string>
+    <string name="update_never_checked">not checked yet</string>
+    <string name="update_up_to_date">up to date (checked %1$s)</string>
+    <string name="update_downloaded">version %1$s is ready and will be installed the next time the app is opened</string>
+    <string name="update_failed">update check failed (%1$s), trying again tomorrow</string>
+    <string name="loading_page">Loading %1$s …</string>
+    <string name="loading_page_of">Loading page %1$d of %2$d · %3$s</string>
+    <string name="save">Save</string>
+    <string name="preview">Preview</string>
+    <string name="saved">Settings saved</string>
+    <string name="error_invalid_urls">Nothing was saved. These lines are not valid http:// or https:// URLs:</string>
+    <string name="error_invalid_line">Line %1$d: %2$s</string>
+    <string name="error_delay">Nothing was saved. Time per page: enter a whole number of minutes (%1$d–%2$d).</string>
+    <string name="error_retrying">No connection – retrying in 1 minute</string>
+    <string name="hint_no_urls_app">No web pages yet.\nPress OK or Menu to add some.</string>
+    <string name="hint_no_urls_dream">No web pages yet.\nOpen the Web Screensaver app to add some.</string>
+    <string name="controls_hint">In the slideshow: left/right shows the previous/next page, Menu or a long press on OK opens these settings.</string>
+</resources>
