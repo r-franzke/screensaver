@@ -1,73 +1,72 @@
 # Web Screensaver
 
-Android-TV-App, die eine Liste von Webseiten als Bildschirmschoner (Daydream) und als
-Vollbild-Diashow anzeigt. Nach einer einstellbaren Zeit wird zur nächsten Seite gewechselt.
-Ausgelegt für Android TV 8/9 (z. B. Xiaomi Mi Box), aber nicht gerätespezifisch.
+An Android TV app that shows a list of web pages as the system screensaver (Daydream) and as a
+fullscreen slideshow, switching to the next page after a configurable delay. Built for Android TV 8/9
+(e.g. Xiaomi Mi Box), but nothing in it is device-specific. The app's UI is in English and German.
 
 ## Installation
 
-1. Im Play Store **„Downloader“** (von AFTVnews) installieren und der App erlauben,
-   unbekannte Apps zu installieren (Einstellungen → Apps → Sicherheit & Einschränkungen →
-   Unbekannte Quellen → Downloader).
-2. In Downloader die neueste APK laden:
+1. Install **"Downloader"** (by AFTVnews) from the Play Store and allow it to install unknown apps
+   (Settings → Apps → Security & restrictions → Unknown sources → Downloader).
+2. In Downloader, open the latest APK:
    `https://github.com/r-franzke/screensaver/releases/latest/download/web-screensaver.apk`
-3. App **Web Screensaver** öffnen (beim ersten Start öffnen sich die Einstellungen), die URLs einfügen –
-   eine pro Zeile, z. B. bequem per Tastatur der Google-TV-App auf dem Handy – und die
-   Anzeigedauer pro Seite (1–120 Minuten, Standard 5) festlegen. **Speichern** oder **Vorschau**.
-4. **Einstellungen → Geräteeinstellungen → Bildschirmschoner** → „Web Screensaver“ wählen.
-   **„Wann starten“** auf ein paar Minuten und **„Gerät in Ruhezustand versetzen“** auf **Nie** stellen.
-5. Falls der Fernseher keine Bildschirmschoner von Drittanbietern anbietet, per ADB setzen:
+3. Open **Web Screensaver**. On first launch it opens the settings. Paste the URLs, one per line (the
+   keyboard of the Google TV app on your phone makes this easy), and set the time per page
+   (1–120 minutes, default 5). Then press **Save** or **Preview**.
+4. Go to **Settings → Device Preferences → Screen saver** and choose "Web Screensaver".
+   Set **"When to start"** to a few minutes and **"Put device to sleep"** to **Never**.
+5. If your TV doesn't list third-party screensavers, set it via ADB:
    ```
    adb shell settings put secure screensaver_components app.webscreensaver.tv/.SlideshowDream
    adb shell settings put secure screensaver_enabled 1
    ```
-6. Sieht eine Seite kaputt aus: **„Android System WebView“** im Play Store aktualisieren.
+6. If a page looks broken, update **"Android System WebView"** in the Play Store.
 
-## Bedienung
+## Usage
 
-- In der App: links/rechts = vorherige/nächste Seite, Menü-Taste oder OK lange drücken = Einstellungen.
-- Als Bildschirmschoner beendet jede Taste die Anzeige.
-- Bei jedem Start geht es mit der Seite nach der zuletzt gezeigten weiter, so kommen auch bei
-  kurzen Bildschirmschoner-Phasen alle Seiten an die Reihe.
-- Seiten laufen im Hintergrund weiter, solange die Diashow läuft. Eine Zeile, die mit `!` beginnt
-  (z. B. `! https://example.com/uhr`), wird vor jeder Anzeige frisch geladen.
-- Die nächste Seite wird 30 Sekunden vor dem Wechsel geladen. Wird der Speicher knapp, werden
-  versteckte Seiten geschlossen und bei Bedarf neu geladen.
-- Ohne Verbindung erscheint ein kleiner Hinweis, alle 60 Sekunden wird es erneut versucht;
-  funktionierende Seiten werden weiter gezeigt, fehlerhafte übersprungen. Die letzten Ladefehler
-  stehen in den Einstellungen unter „Ladefehler“.
-- Außerhalb des Bildschirmschoners bzw. der App läuft nichts im Hintergrund.
+- In the app: left/right shows the previous/next page; the Menu key or a long press on OK opens the
+  settings.
+- As a screensaver, any key ends it.
+- Each start continues with the page after the one shown last, so even short screensaver sessions
+  cycle through all pages.
+- Pages keep running in the background while the slideshow runs. A line starting with `!`
+  (e.g. `! https://example.com/clock`) is loaded fresh before each showing.
+- The next page starts loading 30 seconds before the switch. When memory runs low, hidden pages are
+  closed and reloaded when needed.
+- Without a connection, a small notice appears and the page is retried every 60 seconds; working
+  pages keep being shown and failing ones are skipped. The latest load errors are listed in the
+  settings under "Load errors".
+- Nothing runs in the background outside the screensaver or the app.
 
-Die URLs bleiben nur auf dem Gerät (kein Backup, kein Logging, keine Übertragung).
+The URLs stay on the device: no backup, no logging, never sent anywhere.
 
 ## Updates
 
-Die App sucht höchstens einmal pro Tag (nur während Diashow oder Bildschirmschoner laufen) nach einer
-neuen Version auf der GitHub-Releases-Seite und lädt sie herunter. Beim nächsten Öffnen der App fragt
-Android „Update installieren?“ – einmal mit OK bestätigen. Beim ersten Mal muss der App erlaubt werden,
-Apps zu installieren. In den Einstellungen unter „Updates“ stehen die installierte Version, der Status
-und die Schaltfläche „Nach Updates suchen“.
+At most once a day (and only while the slideshow or screensaver runs), the app checks the GitHub
+releases for a new version and downloads it. The next time you open the app, Android asks
+"Install update?" — confirm once. The first time, you have to allow the app to install apps.
+The settings show the installed version, the update status and a "Check for updates" button.
 
-## Entwicklung
+## Development
 
 ```
 ./gradlew assembleDebug testDebugUnitTest lintDebug
 ```
 
-Versionen entstehen automatisch aus den Commit-Nachrichten
-([Conventional Commits](https://www.conventionalcommits.org/de/)), sobald etwas auf `main` landet:
+Versions are derived automatically from commit messages
+([Conventional Commits](https://www.conventionalcommits.org/)) when changes land on `main`:
 
-| Commit-Nachricht | Version |
+| Commit message | Version |
 |---|---|
-| `fix: …` | Patch, z. B. 1.0.0 → 1.0.1 |
-| `feat: …` | Minor, z. B. 1.0.1 → 1.1.0 |
-| `feat!: …` oder `BREAKING CHANGE:` im Text | Major, z. B. 1.1.0 → 2.0.0 |
-| `chore:`, `docs:`, `refactor:`, `test:`, … | kein Release |
+| `fix: …` | patch, e.g. 1.0.0 → 1.0.1 |
+| `feat: …` | minor, e.g. 1.0.1 → 1.1.0 |
+| `feat!: …` or `BREAKING CHANGE:` in the body | major, e.g. 1.1.0 → 2.0.0 |
+| `chore:`, `docs:`, `refactor:`, `test:`, … | no release |
 
-GitHub Actions baut dann die signierte APK, legt das Tag `vX.Y.Z` und das Release mit Changelog an und
-hängt `web-screensaver.apk` an. Pull Requests am besten per „Squash and merge“ zusammenführen – dann
-zählt der PR-Titel als Commit-Nachricht.
+GitHub Actions then builds the signed APK, creates the tag `vX.Y.Z` and the release with a changelog,
+and attaches `web-screensaver.apk`. Merging pull requests with "Squash and merge" is easiest: the PR
+title then becomes the commit message.
 
-Dafür werden die Repository-Secrets `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS` und
-`KEY_PASSWORD` benötigt. Geht der Keystore verloren, kann eine neue Version die installierte App
-nicht mehr aktualisieren (nur Deinstallieren und Neuinstallieren, dabei gehen die Einstellungen verloren).
+This needs the repository secrets `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS` and
+`KEY_PASSWORD`. If the keystore is lost, a new version can no longer update the installed app
+(only uninstall and reinstall, which loses the settings).
